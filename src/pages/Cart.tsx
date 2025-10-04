@@ -17,27 +17,35 @@ const Cart = () => {
       minimumFractionDigits: 0,
     }).format(price);
 
+  // ✅ kondisi keranjang kosong
   if (cart.items.length === 0) {
     return (
       <div className="min-h-screen bg-background">
         <Header cartItemCount={cart.itemCount} />
+
         <div className="container mx-auto px-4 py-16">
           <div className="text-center space-y-6">
             <ShoppingBag className="w-16 h-16 mx-auto text-muted-foreground" />
             <div>
               <h1 className="text-2xl font-bold mb-2">Keranjang Kosong</h1>
-              <p className="text-muted-foreground">Belum ada produk di keranjang Anda</p>
+              <p className="text-muted-foreground">
+                Belum ada produk di keranjang Anda
+              </p>
             </div>
             <Link to="/">
-              <Button size="lg" className="px-4 py-1 rounded mt-20">Mulai Belanja</Button>
+              <Button size="lg" className="px-4 py-1 rounded mt-20">
+                Mulai Belanja
+              </Button>
             </Link>
           </div>
         </div>
+
         <Footer />
       </div>
     );
   }
 
+  // ✅ kondisi ada produk di cart
   return (
     <div className="min-h-screen bg-background">
       <Header cartItemCount={cart.itemCount} />
@@ -66,8 +74,12 @@ const Cart = () => {
                   />
                   <div className="flex-1">
                     <h3 className="font-semibold mb-1">{item.product.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-2">{item.product.brand}</p>
-                    <p className="font-bold text-primary">{formatPrice(item.product.price)}</p>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {item.product.brand}
+                    </p>
+                    <p className="font-bold text-primary">
+                      {formatPrice(item.product.price)}
+                    </p>
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     <Button
@@ -84,16 +96,22 @@ const Cart = () => {
                         variant="outline"
                         size="icon"
                         className="w-8 h-8"
-                        onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                        onClick={() =>
+                          updateQuantity(item.product.id, item.quantity - 1)
+                        }
                       >
                         <Minus className="w-3 h-3" />
                       </Button>
-                      <span className="w-8 text-center font-medium">{item.quantity}</span>
+                      <span className="w-8 text-center font-medium">
+                        {item.quantity}
+                      </span>
                       <Button
                         variant="outline"
                         size="icon"
                         className="w-8 h-8"
-                        onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                        onClick={() =>
+                          updateQuantity(item.product.id, item.quantity + 1)
+                        }
                       >
                         <Plus className="w-3 h-3" />
                       </Button>
@@ -126,7 +144,9 @@ const Cart = () => {
 
                 <div className="flex justify-between font-bold text-lg">
                   <span>Total</span>
-                  <span className="text-primary">{formatPrice(cart.total)}</span>
+                  <span className="text-primary">
+                    {formatPrice(cart.total)}
+                  </span>
                 </div>
 
                 <Link to="/checkout">

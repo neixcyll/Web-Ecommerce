@@ -1,8 +1,10 @@
-import { Search, Home, Bell, ShoppingCart } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import { Search, Home, Bell, ShoppingCart } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Link, useLocation } from "react-router-dom";
+import { supabase } from "@/lib/supabaseClient";
 
 interface HeaderProps {
   cartItemCount?: number;
@@ -10,6 +12,34 @@ interface HeaderProps {
 }
 
 export const Header = ({ cartItemCount = 0, onSearchChange }: HeaderProps) => {
+  const location = useLocation();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    // cek user saat load pertama
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getUser();
+
+    // listen perubahan login/logout
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
+
   return (
     <header className="bg-card border-b border-border sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4">
@@ -17,7 +47,9 @@ export const Header = ({ cartItemCount = 0, onSearchChange }: HeaderProps) => {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-              <span className="text-primary-foreground text-sm font-bold"><img src="logo_fixie.png" alt="" /></span>
+              <span className="text-primary-foreground text-sm font-bold">
+                <img src="logo_fixie.png" alt="" />
+              </span>
             </div>
             <span className="text-xl font-bold text-foreground">FixieStore</span>
           </Link>
@@ -41,17 +73,17 @@ export const Header = ({ cartItemCount = 0, onSearchChange }: HeaderProps) => {
                 <Home className="w-5 h-5" />
               </Button>
             </Link>
-            
+
             <Button variant="ghost" size="icon">
               <Bell className="w-5 h-5" />
             </Button>
-            
+
             <Link to="/cart">
               <Button variant="ghost" size="icon" className="relative">
                 <ShoppingCart className="w-5 h-5" />
                 {cartItemCount > 0 && (
-                  <Badge 
-                    variant="destructive" 
+                  <Badge
+                    variant="destructive"
                     className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center text-xs p-0"
                   >
                     {cartItemCount}
@@ -59,6 +91,29 @@ export const Header = ({ cartItemCount = 0, onSearchChange }: HeaderProps) => {
                 )}
               </Button>
             </Link>
+
+            {/* Auth buttons / User info */}
+            {!user && location.pathname !== "/login" && location.pathname !== "/register" ? (
+              <div className="flex items-center space-x-2">
+                <Link to="/login">
+                  <Button variant="outline">Masuk</Button>
+                </Link>
+                <Link to="/register">
+                  <Button>Daftar</Button>
+                </Link>
+              </div>
+            ) : null}
+
+            {user && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm">
+                  Halo, {user.user_metadata?.full_name || user.email}
+                </span>
+                <Button variant="destructive" size="sm" onClick={handleLogout}>
+                  Logout
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>

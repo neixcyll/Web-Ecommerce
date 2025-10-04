@@ -4,15 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Product } from "@/types/product";
 import { ShoppingCart, Eye, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useCartContext } from "@/components/cart-context";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabaseClient"; // pastikan path benar
 
 interface ProductCardProps {
   product: Product;
 }
 
 export const ProductCard = ({ product }: ProductCardProps) => {
-  const { addToCart } = useCartContext();
   const { toast } = useToast();
 
   const formatPrice = (price: number) =>
@@ -23,16 +22,73 @@ export const ProductCard = ({ product }: ProductCardProps) => {
     }).format(price);
 
   const discountPercentage = product.originalPrice
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    ? Math.round(
+        ((product.originalPrice - product.price) / product.originalPrice) * 100
+      )
     : 0;
 
-  const handleAddToCart = () => {
-    addToCart(product);
+  const handleAddToCart = async () => {
+    try {
+      // ambil user id dari session
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-    toast({
-      title: "Produk ditambahkan",
-      description: `${product.name} berhasil ditambahkan ke keranjang`,
-    });
+      if (userError || !user) {
+        toast({
+          title: "Gagal",
+          description: "Anda harus login terlebih dahulu",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // cek apakah sudah ada di cart
+      const { data: existing, error: selectError } = await supabase
+        .from("cart_items")
+        .select("id, quantity")
+        .eq("user_id", user.id)
+        .eq("product_id", product.id)
+        .single();
+
+      if (selectError && selectError.code !== "PGRST116") {
+        // kode PGRST116 = no rows found
+        throw selectError;
+      }
+
+      if (existing) {
+        // update quantity
+        const { error: updateError } = await supabase
+          .from("cart_items")
+          .update({ quantity: existing.quantity + 1 })
+          .eq("id", existing.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // insert baru
+        const { error: insertError } = await supabase.from("cart_items").insert([
+          {
+            user_id: user.id,
+            product_id: product.id,
+            quantity: 1,
+          },
+        ]);
+
+        if (insertError) throw insertError;
+      }
+
+      toast({
+        title: "Produk ditambahkan",
+        description: `${product.name} berhasil ditambahkan ke keranjang`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Gagal menambahkan ke keranjang",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -90,7 +146,9 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           </div>
 
           <div className="flex items-center gap-2 mb-3">
-            <span className="font-bold text-lg text-primary">{formatPrice(product.price)}</span>
+            <span className="font-bold text-lg text-primary">
+              {formatPrice(product.price)}
+            </span>
             {product.originalPrice && (
               <span className="text-sm text-muted-foreground line-through">
                 {formatPrice(product.originalPrice)}
